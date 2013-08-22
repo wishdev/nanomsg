@@ -12,4 +12,6 @@ Gem::Specification.new do |s|
   s.rdoc_options = ['--main', 'README']
   s.require_paths = ['lib', 'ext']
   s.summary = 'Ruby binding for nanomsg. nanomsg library is a high-performance implementation of several "scalability protocols".'
-end
+
+  s.extensions << 'ext/extconf.rb'
+  end
