@@ -1,0 +1,8 @@
+
+= 0.2 /
+
+  * Adds REQ/REP socket type (ReqSocket, RepSocket).
+
+= 0.1 / 22Aug2013
+
+  * Initial release, only PAIR sockets supported. 

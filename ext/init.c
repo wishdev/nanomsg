@@ -2,12 +2,15 @@
 #include "ruby/ruby.h"
 
 #include <nanomsg/nn.h>
+#include <nanomsg/reqrep.h>
 #include <nanomsg/pair.h>
 
 static VALUE cNanoMsg;
 static VALUE cSocket; 
 static VALUE cPairSocket; 
 static VALUE ceSocketError;
+static VALUE cReqSocket;
+static VALUE cRepSocket;
 
 struct nmsg_socket {
   int socket; 
@@ -67,42 +70,13 @@ sock_alloc(VALUE klass)
 static void
 sock_raise_error(int code)
 {
-  printf("socket error %d errno %d\n", code, errno);
+  // printf("socket error %d errno %d\n", code, errno);
+  const char* error_str = nn_strerror(nn_errno());
 
   // TODO allow querying of the errno at the very least.
   switch (errno) {
-    case EBADF:
-      rb_raise(ceSocketError, "The provided socket is invalid.");
-      break; 
-    case ENOTSUP:
-      rb_raise(ceSocketError, "The operation is not supported by this socket type.");
-      break; 
-    case EFSM:
-      rb_raise(ceSocketError, "The operation cannot be performed on this socket at the moment because the socket is not in the appropriate state.");
-      break; 
-    case EAGAIN: 
-      rb_raise(ceSocketError, "Non-blocking mode was requested and the message cannot be sent at the moment.");
-      break; 
-    case EINTR: 
-      rb_raise(ceSocketError, "The operation was interrupted by delivery of a signal before the message was sent.");
-      break; 
-    case ETIMEDOUT: 
-      rb_raise(ceSocketError, "Individual socket types may define their own specific timeouts. If such timeout is hit, this error will be returned.");
-      break; 
-    case EAFNOSUPPORT: 
-      rb_raise(ceSocketError, "Specified address family is not supported.");
-      break; 
-    case EINVAL: 
-      rb_raise(ceSocketError, "Unknown protocol.");
-      break; 
-    case EMFILE: 
-      rb_raise(ceSocketError, "The limit on the total number of open SP sockets or OS limit for file descriptors has been reached.");
-      break; 
-    case ETERM: 
-      rb_raise(ceSocketError, "The library is terminating.");
-      break; 
     default: 
-      rb_raise(ceSocketError, "Unknown error code %d", errno);
+      rb_raise(ceSocketError, "%s", error_str);
   }
 }
 
@@ -249,6 +223,32 @@ pair_sock_init(VALUE socket)
   return socket; 
 }
 
+static VALUE 
+req_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_REQ);
+  if (psock->socket < 0) {
+    sock_raise_error(psock->socket);
+  }
+
+  return socket; 
+}
+
+static VALUE 
+rep_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_REP);
+  if (psock->socket < 0) {
+    sock_raise_error(psock->socket);
+  }
+
+  return socket; 
+}
+
 void
 Init_nanomsg(void)
 {
@@ -257,15 +257,21 @@ Init_nanomsg(void)
   cNanoMsg = rb_define_module("NanoMsg"); 
   cSocket = rb_define_class_under(cNanoMsg, "Socket", rb_cObject);
   cPairSocket = rb_define_class_under(cNanoMsg, "PairSocket", cSocket);
+  cReqSocket = rb_define_class_under(cNanoMsg, "ReqSocket", cSocket);
+  cRepSocket = rb_define_class_under(cNanoMsg, "RepSocket", cSocket);
 
   ceSocketError = rb_define_class_under(cNanoMsg, "SocketError", rb_eIOError);
 
+  rb_define_alloc_func(cSocket, sock_alloc);
   rb_define_method(cSocket, "bind", sock_bind, 1);
   rb_define_method(cSocket, "connect", sock_connect, 1);
   rb_define_method(cSocket, "send", sock_send, 1);
   rb_define_method(cSocket, "recv", sock_recv, 0);
 
-  rb_define_alloc_func(cPairSocket, sock_alloc);
   rb_define_method(cPairSocket, "initialize", pair_sock_init, 0);
+
+  rb_define_method(cReqSocket, "initialize", req_sock_init, 0);
+
+  rb_define_method(cRepSocket, "initialize", rep_sock_init, 0);
 }
 
