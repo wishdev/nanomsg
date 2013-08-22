@@ -1,0 +1,2 @@
+
+ * set socket options? NN_LINGER, NN_SNDBUF, NN_RCVBUF (nn-core)

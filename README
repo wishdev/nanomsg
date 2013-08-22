@@ -1,7 +1,45 @@
 
-GOAL
+TLDR
 
-Write an idiomatic nanomsg wrapper for Ruby. 
+An idiomatic nanomsg wrapper for Ruby. (http://nanomsg.org/) 
+
+NANOMSG
+
+nanomsg library is a high-performance implementation of several "scalability 
+protocols". Scalability protocol's job is to define how multiple applications 
+communicate to form a single distributed application. Implementation of 
+following scalability protocols is available at the moment:
+
+ * PAIR - simple one-to-one communication
+ * BUS - simple many-to-many communication
+ * REQREP - allows to build clusters of stateless services to process user requests
+ * PUBSUB - distributes messages to large sets of interested subscribers
+ * FANIN - aggregates messages from multiple sources
+ * FANOUT - load balances messages among many destinations
+ * SURVEY - allows to query state of multiple applications in a single go
+
+Scalability protocols are layered on top of transport layer in the network 
+stack. At the moment, nanomsg library supports following transports:
+
+ * INPROC - transport within a process (between threads, modules etc.)
+ * IPC - transport between processes on a single machine
+ * TCP - network transport via TCP
+
+SYNOPSIS
+
+  require 'nanomsg'
+
+  socket1 = NanoMsg::PairSocket.new
+  socket1.bind('inproc://test')
+  
+  socket1.send('test')
+  socket1.recv
+
+STATUS
+
+Very early alpha, not much testing has been done. Only the PAIR communication
+type works. Nonblocking mode doesn't even begin to work. This will break your
+application. 
 
 LICENSE
 

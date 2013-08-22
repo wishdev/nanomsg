@@ -134,33 +134,104 @@ sock_connect(VALUE socket, VALUE connect)
   return Qnil; 
 }
 
+struct ioop {
+  int last_code; 
+  int sock; 
+  char* buffer; 
+  long len; 
+  int abort; 
+};
+
+static VALUE
+sock_send_no_gvl(void* data)
+{
+  struct ioop *pio = data; 
+
+  while (pio->last_code == EAGAIN && !pio->abort) {
+    pio->last_code = nn_send(pio->sock, pio->buffer, pio->len, NN_DONTWAIT /* flags */);
+
+    if (pio->last_code < 0)
+      pio->last_code = errno; 
+  }
+
+  return Qnil;
+}
+
+static void
+sock_send_abort(void* data)
+{
+  struct ioop *pio = data; 
+  pio->abort = Qtrue;  
+}
+
 static VALUE
 sock_send(VALUE socket, VALUE buffer)
 {
-  int sock = sock_get(socket);
-  int bytes; 
+  struct ioop io; 
 
-  bytes = nn_send(sock, StringValuePtr(buffer), RSTRING_LEN(buffer), 0 /* flags */);
-  if (bytes < 0) 
-    sock_raise_error(bytes);
+  io.sock = sock_get(socket);
+  io.last_code = EAGAIN; 
+  io.buffer = StringValuePtr(buffer);
+  io.len = RSTRING_LEN(buffer);
+  io.abort = Qfalse; 
 
-  return INT2NUM(bytes);
+  rb_thread_blocking_region(sock_send_no_gvl, &io, sock_send_abort, &io);
+
+  // Unclear what to do in this situation, but we'll simply return nil, 
+  // leaving Ruby to handle the abort. 
+  if (io.abort) 
+    return Qnil; 
+
+  if (io.last_code < 0)
+    sock_raise_error(io.last_code);
+
+  return INT2NUM(io.last_code);
+}
+
+static VALUE
+sock_recv_no_gvl(void* data)
+{
+  struct ioop *pio = data; 
+
+  while (pio->last_code == EAGAIN && !pio->abort) {
+    pio->last_code = nn_recv(pio->sock, &pio->buffer, NN_MSG, NN_DONTWAIT /* flags */);
+
+    if (pio->last_code < 0)
+      pio->last_code = errno; 
+  }
+
+  return Qnil; 
+}
+
+static void
+sock_recv_abort(void* data) 
+{
+  struct ioop *pio = data; 
+
+  pio->abort = Qtrue; 
 }
 
 static VALUE
 sock_recv(VALUE socket)
 {
-  int sock = sock_get(socket);
-  int bytes; 
-  char* buffer; 
   VALUE result; 
+  struct ioop io; 
 
-  bytes = nn_recv(sock, &buffer, NN_MSG, 0 /* flags */);
-  if (bytes < 0) 
-    sock_raise_error(bytes);
+  io.sock = sock_get(socket);
+  io.buffer = (char*) 0; 
+  io.abort  = Qfalse; 
+  io.last_code = EAGAIN;
 
-  result = rb_str_new(buffer, bytes);
-  nn_freemsg(buffer);
+  rb_thread_blocking_region(sock_recv_no_gvl, &io, sock_recv_abort, &io); 
+
+  if (io.abort) 
+    return Qnil; 
+
+  if (io.last_code < 0)
+    sock_raise_error(io.last_code);
+
+  result = rb_str_new(io.buffer, io.last_code);
+  nn_freemsg(io.buffer); io.buffer = (char*) 0;
 
   return result;
 }
