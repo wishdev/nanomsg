@@ -328,7 +328,7 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
 void
 Init_nanomsg(void)
 {
-  printf("loading nanomsg extension\n");
+  int value, i;
 
   cNanoMsg = rb_define_module("NanoMsg"); 
   cSocket = rb_define_class_under(cNanoMsg, "Socket", rb_cObject);
@@ -357,5 +357,15 @@ Init_nanomsg(void)
   rb_define_method(cPubSocket, "initialize", pub_sock_init, 0);
   rb_define_method(cSubSocket, "initialize", sub_sock_init, 0);
   rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
+
+  // Define all constants that nanomsg knows about: 
+  for (i = 0; ; ++i) {
+    const char* name = nn_symbol (i, &value);
+    if (name == NULL) break;
+
+    // I see no point in declaring values other than those starting with NN_: 
+    if (strncmp(name, "NN_", 3) == 0) 
+      rb_const_set(cNanoMsg, rb_intern(name), INT2NUM(value));
+  }
 }
 
