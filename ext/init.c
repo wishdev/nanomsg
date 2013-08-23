@@ -4,13 +4,20 @@
 #include <nanomsg/nn.h>
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pair.h>
+#include <nanomsg/pubsub.h>
 
 static VALUE cNanoMsg;
 static VALUE cSocket; 
+
 static VALUE cPairSocket; 
-static VALUE ceSocketError;
+
 static VALUE cReqSocket;
 static VALUE cRepSocket;
+
+static VALUE cPubSocket;
+static VALUE cSubSocket;
+
+static VALUE ceSocketError;
 
 struct nmsg_socket {
   int socket; 
@@ -249,6 +256,48 @@ rep_sock_init(VALUE socket)
   return socket; 
 }
 
+static VALUE 
+pub_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_PUB);
+  if (psock->socket < 0) {
+    sock_raise_error(psock->socket);
+  }
+
+  return socket; 
+}
+
+static VALUE 
+sub_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_SUB);
+  if (psock->socket < 0) {
+    sock_raise_error(psock->socket);
+  }
+
+  return socket; 
+}
+
+static VALUE
+sub_sock_subscribe(VALUE socket, VALUE channel)
+{
+  int sock = sock_get(socket);
+  int err; 
+
+  err = nn_setsockopt(sock, NN_SUB, NN_SUB_SUBSCRIBE, 
+    StringValuePtr(channel), 
+    RSTRING_LEN(channel));
+
+  if (err < 0) 
+    sock_raise_error(err);
+
+  return socket;
+}
+
 void
 Init_nanomsg(void)
 {
@@ -257,8 +306,12 @@ Init_nanomsg(void)
   cNanoMsg = rb_define_module("NanoMsg"); 
   cSocket = rb_define_class_under(cNanoMsg, "Socket", rb_cObject);
   cPairSocket = rb_define_class_under(cNanoMsg, "PairSocket", cSocket);
+  
   cReqSocket = rb_define_class_under(cNanoMsg, "ReqSocket", cSocket);
   cRepSocket = rb_define_class_under(cNanoMsg, "RepSocket", cSocket);
+  
+  cPubSocket = rb_define_class_under(cNanoMsg, "PubSocket", cSocket);
+  cSubSocket = rb_define_class_under(cNanoMsg, "SubSocket", cSocket);
 
   ceSocketError = rb_define_class_under(cNanoMsg, "SocketError", rb_eIOError);
 
@@ -271,7 +324,10 @@ Init_nanomsg(void)
   rb_define_method(cPairSocket, "initialize", pair_sock_init, 0);
 
   rb_define_method(cReqSocket, "initialize", req_sock_init, 0);
-
   rb_define_method(cRepSocket, "initialize", rep_sock_init, 0);
+
+  rb_define_method(cPubSocket, "initialize", pub_sock_init, 0);
+  rb_define_method(cSubSocket, "initialize", sub_sock_init, 0);
+  rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
 }
 
