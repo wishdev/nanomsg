@@ -2,6 +2,12 @@
 = 0.2 /
 
   * Adds REQ/REP socket type (ReqSocket, RepSocket).
+  * Adds PUB/SUB socket type. 
+  * Exceptions raised are now subclasses of NanoMsg::Errno
+
+  BUGS
+
+    * PUB/SUB seems to be disfunctional for the TCP transport currently. 
 
 = 0.1 / 22Aug2013
 
