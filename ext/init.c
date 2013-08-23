@@ -119,7 +119,8 @@ sock_connect(VALUE socket, VALUE connect)
 }
 
 struct ioop {
-  int last_code; 
+  int nn_errno; 
+  int return_code; 
   int sock; 
   char* buffer; 
   long len; 
@@ -131,11 +132,18 @@ sock_send_no_gvl(void* data)
 {
   struct ioop *pio = data; 
 
-  while (pio->last_code == EAGAIN && !pio->abort) {
-    pio->last_code = nn_send(pio->sock, pio->buffer, pio->len, NN_DONTWAIT /* flags */);
+  // TODO This is buggy. I cannot make the difference between 
+  // 'socket gone away' (=EAGAIN) and 'socket busy' (=EAGAIN). So I err on the
+  // side of 'socket busy' and do not raise the error. As a consequence, we'll
+  // get stuck in an endless loop when the socket is just not answering. 
 
-    if (pio->last_code < 0)
-      pio->last_code = nn_errno(); 
+  while (pio->nn_errno == EAGAIN && !pio->abort) {
+    pio->return_code = nn_send(pio->sock, pio->buffer, pio->len, NN_DONTWAIT /* flags */);
+
+    if (pio->return_code < 0)
+      pio->nn_errno = nn_errno(); 
+    else
+      break;
   }
 
   return Qnil;
@@ -154,7 +162,7 @@ sock_send(VALUE socket, VALUE buffer)
   struct ioop io; 
 
   io.sock = sock_get(socket);
-  io.last_code = EAGAIN; 
+  io.nn_errno = EAGAIN;
   io.buffer = StringValuePtr(buffer);
   io.len = RSTRING_LEN(buffer);
   io.abort = Qfalse; 
@@ -166,10 +174,10 @@ sock_send(VALUE socket, VALUE buffer)
   if (io.abort) 
     return Qnil; 
 
-  if (io.last_code < 0)
-    sock_raise_error(io.last_code);
+  if (io.return_code < 0)
+    sock_raise_error(io.nn_errno);
 
-  return INT2NUM(io.last_code);
+  return INT2NUM(io.return_code);
 }
 
 static VALUE
@@ -177,11 +185,18 @@ sock_recv_no_gvl(void* data)
 {
   struct ioop *pio = data; 
 
-  while (pio->last_code == EAGAIN && !pio->abort) {
-    pio->last_code = nn_recv(pio->sock, &pio->buffer, NN_MSG, NN_DONTWAIT /* flags */);
+  // TODO This is buggy. I cannot make the difference between 
+  // 'socket gone away' (=EAGAIN) and 'socket busy' (=EAGAIN). So I err on the
+  // side of 'socket busy' and do not raise the error. As a consequence, we'll
+  // get stuck in an endless loop when the socket is just not answering. 
 
-    if (pio->last_code < 0)
-      pio->last_code = nn_errno(); 
+  while (pio->nn_errno == EAGAIN && !pio->abort) {
+    pio->return_code = nn_recv(pio->sock, &pio->buffer, NN_MSG, NN_DONTWAIT /* flags */);
+
+    if (pio->return_code < 0)
+      pio->nn_errno = nn_errno(); 
+    else
+      break;
   }
 
   return Qnil; 
@@ -204,17 +219,17 @@ sock_recv(VALUE socket)
   io.sock = sock_get(socket);
   io.buffer = (char*) 0; 
   io.abort  = Qfalse; 
-  io.last_code = EAGAIN;
+  io.nn_errno = EAGAIN;
 
   rb_thread_blocking_region(sock_recv_no_gvl, &io, sock_recv_abort, &io); 
 
   if (io.abort) 
     return Qnil; 
 
-  if (io.last_code < 0)
-    sock_raise_error(io.last_code);
+  if (io.return_code < 0)
+    sock_raise_error(io.nn_errno);
 
-  result = rb_str_new(io.buffer, io.last_code);
+  result = rb_str_new(io.buffer, io.return_code);
   nn_freemsg(io.buffer); io.buffer = (char*) 0;
 
   return result;
@@ -225,9 +240,9 @@ sock_close_no_gvl(void* data)
 {
   struct ioop *pio = (struct ioop*) data; 
 
-  pio->last_code = nn_close(pio->sock);
-  if (pio->last_code < 0)
-    pio->last_code = nn_errno();
+  pio->return_code = nn_close(pio->sock);
+  if (pio->return_code < 0)
+    pio->nn_errno = nn_errno();
 
   return Qnil;
 }
@@ -238,14 +253,13 @@ sock_close(VALUE socket)
   struct ioop io; 
 
   io.sock = sock_get(socket);
-  io.last_code = -1;
 
   // I've no idea on how to abort a close (which may block for NN_LINGER 
   // seconds), so we'll be uninterruptible. 
   rb_thread_blocking_region(sock_close_no_gvl, &io, NULL, NULL);
 
-  if (io.last_code < 0)
-    sock_raise_error(io.last_code);
+  if (io.return_code < 0)
+    sock_raise_error(io.nn_errno);
 
   return Qnil;
 }
