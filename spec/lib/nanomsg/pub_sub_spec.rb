@@ -20,6 +20,12 @@ describe 'PUB/SUB sockets' do
       let(:sub1) { NanoMsg::SubSocket.new }
       let(:sub2) { NanoMsg::SubSocket.new }
 
+      after(:each) {
+        pub.close
+        sub1.close
+        sub2.close
+      }
+
       around(:each) { |example| 
         timeout(1) { example.run }}
 

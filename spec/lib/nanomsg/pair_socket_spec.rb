@@ -4,6 +4,11 @@ describe NanoMsg::PairSocket do
   let(:sock1) { NanoMsg::PairSocket.new }
   let(:sock2) { NanoMsg::PairSocket.new }
 
+  after(:each) do
+    sock1.close
+    sock2.close
+  end
+
   def self.examples_for_transport tbind
     name = tbind.split('://').first
     

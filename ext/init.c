@@ -75,17 +75,14 @@ sock_alloc(VALUE klass)
 }
 
 static void
-sock_raise_error(int code)
+sock_raise_error(int nn_errno)
 {
-  // printf("socket error %d errno %d\n", code, errno);
-  const char* error_str = nn_strerror(nn_errno());
+  const char* error_str = nn_strerror(nn_errno);
 
-  // TODO allow querying of the errno at the very least.
-  switch (errno) {
-    default: 
-      rb_raise(ceSocketError, "%s", error_str);
-  }
+  // TODO map to Errno exception hierarchy
+  rb_raise(ceSocketError, "%s", error_str);
 }
+#define RAISE_SOCK_ERROR { sock_raise_error(nn_errno()); }
 
 static VALUE
 sock_bind(VALUE socket, VALUE bind)
@@ -95,7 +92,7 @@ sock_bind(VALUE socket, VALUE bind)
 
   endpoint = nn_bind(sock, StringValueCStr(bind));
   if (endpoint < 0) 
-    sock_raise_error(endpoint); 
+    RAISE_SOCK_ERROR; 
 
   // TODO do something with the endpoint, returning it in a class for example. 
   return Qnil; 
@@ -132,7 +129,7 @@ sock_send_no_gvl(void* data)
     pio->last_code = nn_send(pio->sock, pio->buffer, pio->len, NN_DONTWAIT /* flags */);
 
     if (pio->last_code < 0)
-      pio->last_code = errno; 
+      pio->last_code = nn_errno(); 
   }
 
   return Qnil;
@@ -178,7 +175,7 @@ sock_recv_no_gvl(void* data)
     pio->last_code = nn_recv(pio->sock, &pio->buffer, NN_MSG, NN_DONTWAIT /* flags */);
 
     if (pio->last_code < 0)
-      pio->last_code = errno; 
+      pio->last_code = nn_errno(); 
   }
 
   return Qnil; 
@@ -217,6 +214,36 @@ sock_recv(VALUE socket)
   return result;
 }
 
+static VALUE
+sock_close_no_gvl(void* data)
+{
+  struct ioop *pio = (struct ioop*) data; 
+
+  pio->last_code = nn_close(pio->sock);
+  if (pio->last_code < 0)
+    pio->last_code = nn_errno();
+
+  return Qnil;
+}
+
+static VALUE
+sock_close(VALUE socket)
+{
+  struct ioop io; 
+
+  io.sock = sock_get(socket);
+  io.last_code = -1;
+
+  // I've no idea on how to abort a close (which may block for NN_LINGER 
+  // seconds), so we'll be uninterruptible. 
+  rb_thread_blocking_region(sock_close_no_gvl, &io, NULL, NULL);
+
+  if (io.last_code < 0)
+    sock_raise_error(io.last_code);
+
+  return Qnil;
+}
+
 static VALUE 
 pair_sock_init(VALUE socket)
 {
@@ -224,7 +251,7 @@ pair_sock_init(VALUE socket)
 
   psock->socket = nn_socket(AF_SP, NN_PAIR);
   if (psock->socket < 0) {
-    sock_raise_error(psock->socket);
+    RAISE_SOCK_ERROR;
   }
 
   return socket; 
@@ -237,7 +264,7 @@ req_sock_init(VALUE socket)
 
   psock->socket = nn_socket(AF_SP, NN_REQ);
   if (psock->socket < 0) {
-    sock_raise_error(psock->socket);
+    RAISE_SOCK_ERROR;
   }
 
   return socket; 
@@ -250,7 +277,7 @@ rep_sock_init(VALUE socket)
 
   psock->socket = nn_socket(AF_SP, NN_REP);
   if (psock->socket < 0) {
-    sock_raise_error(psock->socket);
+    RAISE_SOCK_ERROR;
   }
 
   return socket; 
@@ -263,7 +290,7 @@ pub_sock_init(VALUE socket)
 
   psock->socket = nn_socket(AF_SP, NN_PUB);
   if (psock->socket < 0) {
-    sock_raise_error(psock->socket);
+    RAISE_SOCK_ERROR;
   }
 
   return socket; 
@@ -276,7 +303,7 @@ sub_sock_init(VALUE socket)
 
   psock->socket = nn_socket(AF_SP, NN_SUB);
   if (psock->socket < 0) {
-    sock_raise_error(psock->socket);
+    RAISE_SOCK_ERROR;
   }
 
   return socket; 
@@ -293,7 +320,7 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
     RSTRING_LEN(channel));
 
   if (err < 0) 
-    sock_raise_error(err);
+    RAISE_SOCK_ERROR;
 
   return socket;
 }
@@ -320,6 +347,7 @@ Init_nanomsg(void)
   rb_define_method(cSocket, "connect", sock_connect, 1);
   rb_define_method(cSocket, "send", sock_send, 1);
   rb_define_method(cSocket, "recv", sock_recv, 0);
+  rb_define_method(cSocket, "close", sock_close, 0);
 
   rb_define_method(cPairSocket, "initialize", pair_sock_init, 0);
 

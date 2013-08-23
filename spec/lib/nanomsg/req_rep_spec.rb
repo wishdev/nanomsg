@@ -4,6 +4,11 @@ describe 'REQ/REP sockets' do
   let(:req) { NanoMsg::ReqSocket.new }
   let(:rep) { NanoMsg::RepSocket.new }
 
+  after(:each) do
+    req.close
+    rep.close
+  end
+
   def self.examples_for_transport tbind
     name = tbind.split('://').first
     
@@ -23,6 +28,6 @@ describe 'REQ/REP sockets' do
   end
 
   examples_for_transport "ipc:///tmp/reqrep.ipc"
-  examples_for_transport "tcp://127.0.0.1:5556"
+  examples_for_transport "tcp://127.0.0.1:5555"
   examples_for_transport "inproc://reqrep"
 end
