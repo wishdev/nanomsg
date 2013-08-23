@@ -6,7 +6,9 @@
 #include <nanomsg/pair.h>
 #include <nanomsg/pubsub.h>
 
-static VALUE cNanoMsg;
+#include "constants.h"
+
+static VALUE mNanoMsg;
 static VALUE cSocket; 
 
 static VALUE cPairSocket; 
@@ -77,10 +79,14 @@ sock_alloc(VALUE klass)
 static void
 sock_raise_error(int nn_errno)
 {
-  const char* error_str = nn_strerror(nn_errno);
+  VALUE error = errno_lookup(nn_errno);
 
-  // TODO map to Errno exception hierarchy
-  rb_raise(ceSocketError, "%s", error_str);
+  if (error != Qnil) {
+    VALUE exc = rb_class_new_instance(0, NULL, error);
+    rb_exc_raise(exc);
+  } 
+
+  rb_raise(ceSocketError, "General failure, no such error code %d found.", nn_errno);
 }
 #define RAISE_SOCK_ERROR { sock_raise_error(nn_errno()); }
 
@@ -106,7 +112,7 @@ sock_connect(VALUE socket, VALUE connect)
 
   endpoint = nn_connect(sock, StringValueCStr(connect));
   if (endpoint < 0) 
-    sock_raise_error(endpoint); 
+    RAISE_SOCK_ERROR; 
 
   // TODO do something with the endpoint, returning it in a class for example. 
   return Qnil; 
@@ -328,19 +334,17 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
 void
 Init_nanomsg(void)
 {
-  int value, i;
-
-  cNanoMsg = rb_define_module("NanoMsg"); 
-  cSocket = rb_define_class_under(cNanoMsg, "Socket", rb_cObject);
-  cPairSocket = rb_define_class_under(cNanoMsg, "PairSocket", cSocket);
+  mNanoMsg = rb_define_module("NanoMsg"); 
+  cSocket = rb_define_class_under(mNanoMsg, "Socket", rb_cObject);
+  cPairSocket = rb_define_class_under(mNanoMsg, "PairSocket", cSocket);
   
-  cReqSocket = rb_define_class_under(cNanoMsg, "ReqSocket", cSocket);
-  cRepSocket = rb_define_class_under(cNanoMsg, "RepSocket", cSocket);
+  cReqSocket = rb_define_class_under(mNanoMsg, "ReqSocket", cSocket);
+  cRepSocket = rb_define_class_under(mNanoMsg, "RepSocket", cSocket);
   
-  cPubSocket = rb_define_class_under(cNanoMsg, "PubSocket", cSocket);
-  cSubSocket = rb_define_class_under(cNanoMsg, "SubSocket", cSocket);
+  cPubSocket = rb_define_class_under(mNanoMsg, "PubSocket", cSocket);
+  cSubSocket = rb_define_class_under(mNanoMsg, "SubSocket", cSocket);
 
-  ceSocketError = rb_define_class_under(cNanoMsg, "SocketError", rb_eIOError);
+  ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
 
   rb_define_alloc_func(cSocket, sock_alloc);
   rb_define_method(cSocket, "bind", sock_bind, 1);
@@ -358,14 +362,6 @@ Init_nanomsg(void)
   rb_define_method(cSubSocket, "initialize", sub_sock_init, 0);
   rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
 
-  // Define all constants that nanomsg knows about: 
-  for (i = 0; ; ++i) {
-    const char* name = nn_symbol (i, &value);
-    if (name == NULL) break;
-
-    // I see no point in declaring values other than those starting with NN_: 
-    if (strncmp(name, "NN_", 3) == 0) 
-      rb_const_set(cNanoMsg, rb_intern(name), INT2NUM(value));
-  }
+  Init_constants(mNanoMsg);
 }
 
