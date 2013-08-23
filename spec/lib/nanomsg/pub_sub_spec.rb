@@ -1,5 +1,7 @@
 require 'spec_helper'
 
+require 'timeout'
+
 describe 'PUB/SUB sockets' do
   describe 'PUB socket' do
     it 'has no #recv method'
@@ -17,6 +19,9 @@ describe 'PUB/SUB sockets' do
       let(:pub) { NanoMsg::PubSocket.new }
       let(:sub1) { NanoMsg::SubSocket.new }
       let(:sub2) { NanoMsg::SubSocket.new }
+
+      around(:each) { |example| 
+        timeout(1) { example.run }}
 
       it 'allows simple pub/sub' do
         pub.bind(tbind)
@@ -41,6 +46,6 @@ describe 'PUB/SUB sockets' do
   end
 
   examples_for_transport "ipc:///tmp/pubsub.ipc"
-  # examples_for_transport "tcp://127.0.0.1:5557"
+  examples_for_transport "tcp://127.0.0.1:5557"
   examples_for_transport "inproc://pubsub"
 end
