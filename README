@@ -37,9 +37,8 @@ SYNOPSIS
 
 STATUS
 
-Very early alpha, not much testing has been done. Only the PAIR communication
-type works. Nonblocking mode doesn't even begin to work. This will break your
-application. 
+Very early alpha, not much testing has been done. Only the PAIR, REQ/REP and 
+PUB/SUB communication types work. This will break your application. 
 
 LICENSE
 
