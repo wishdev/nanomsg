@@ -7,28 +7,34 @@ describe 'Devices' do
     let(:a) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW) }
     let(:b) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW) }
     let(:c) { NanoMsg::BusSocket.new }
+    let(:d) { NanoMsg::BusSocket.new }
+
+    let(:adr1) { 'inproc://a' }
+    let(:adr2) { 'inproc://b' }
 
     before(:each) do
-      a
-      b.bind('inproc://b')
-      c.connect('inproc://b')
-    end
+      a.bind(adr1)
+      b.bind(adr2)
 
-    after(:each) do
-      [a, b, c].each(&:close)
+      c.connect adr1
+      d.connect adr2
     end
 
     let!(:thread) {
       Thread.start do
-        NanoMsg.run_device(a, b)
-      end.abort_on_exception = true
+        begin
+          NanoMsg.run_device(a, b)
+        rescue NanoMsg::Errno::ETERM
+          # Ignore, spec shutdown
+        end
+      end
     }
     
     it "forwards messages" do
       sleep 0.01
       c.send 'test'
       timeout(1) do
-        a.recv.should == 'test'
+        d.recv.should == 'test'
       end
     end
   end
