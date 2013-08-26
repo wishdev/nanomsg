@@ -4,6 +4,7 @@
   * Adds REQ/REP socket type (ReqSocket, RepSocket).
   * Adds PUB/SUB socket type. 
   * Exceptions raised are now subclasses of NanoMsg::Errno
+  * Added NanoMsg.terminate, calls nn_term. 
 
   BUGS
 

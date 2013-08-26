@@ -345,6 +345,14 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
   return socket;
 }
 
+static VALUE
+nanomsg_terminate(VALUE self)
+{
+  nn_term(); 
+
+  return Qnil; 
+}
+
 void
 Init_nanomsg(void)
 {
@@ -359,6 +367,8 @@ Init_nanomsg(void)
   cSubSocket = rb_define_class_under(mNanoMsg, "SubSocket", cSocket);
 
   ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
+
+  rb_define_singleton_method(mNanoMsg, "terminate", nanomsg_terminate, 0);
 
   rb_define_alloc_func(cSocket, sock_alloc);
   rb_define_method(cSocket, "bind", sock_bind, 1);
