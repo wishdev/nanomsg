@@ -285,98 +285,47 @@ sock_close(VALUE socket)
   return Qnil;
 }
 
-static VALUE 
-pair_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_PAIR);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
+#define SOCK_INIT_FUNC(name, type) \
+static VALUE \
+name(int argc, VALUE *argv, VALUE self) \
+{ \
+  VALUE domain; \
+  \
+  rb_scan_args(argc, argv, "01", &domain); \
+  if (NIL_P(domain)) \
+    sock_init(self, AF_SP, (type)); \
+  else \
+    sock_init(self, FIX2INT(domain), (type)); \
+  \
+  return self; \
 }
 
-static VALUE 
-req_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_REQ);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-rep_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_REP);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-pub_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_PUB);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-sub_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_SUB);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
+SOCK_INIT_FUNC(pair_sock_init, NN_PAIR);
+SOCK_INIT_FUNC(req_sock_init, NN_REQ);
+SOCK_INIT_FUNC(rep_sock_init, NN_REP);
+SOCK_INIT_FUNC(pub_sock_init, NN_PUB);
+SOCK_INIT_FUNC(sub_sock_init, NN_SUB);
+SOCK_INIT_FUNC(srvy_sock_init, NN_SURVEYOR);
+SOCK_INIT_FUNC(resp_sock_init, NN_RESPONDENT);
+SOCK_INIT_FUNC(push_sock_init, NN_PUSH);
+SOCK_INIT_FUNC(pull_sock_init, NN_PULL);
+SOCK_INIT_FUNC(bus_sock_init, NN_BUS);
 
 static VALUE
 sub_sock_subscribe(VALUE socket, VALUE channel)
 {
   int sock = sock_get(socket);
-  int err; 
+  int err;
 
-  err = nn_setsockopt(sock, NN_SUB, NN_SUB_SUBSCRIBE, 
-    StringValuePtr(channel), 
-    RSTRING_LEN(channel));
-
-  if (err < 0) 
+  err = nn_setsockopt(
+    sock, NN_SUB, NN_SUB_SUBSCRIBE,
+    StringValuePtr(channel),
+    RSTRING_LEN(channel)
+  );
+  if (err < 0)
     RAISE_SOCK_ERROR;
 
   return socket;
-}
-
-static VALUE 
-srvy_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_SURVEYOR);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
 }
 
 static VALUE
@@ -408,60 +357,6 @@ srvy_get_deadline(VALUE self)
     RAISE_SOCK_ERROR; 
 
   return rb_funcall(INT2NUM(deadline), rb_intern("/"), 1, rb_float_new(1000));  
-}
-
-static VALUE 
-resp_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_RESPONDENT);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-push_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_PUSH);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-pull_sock_init(VALUE socket)
-{
-  struct nmsg_socket *psock = sock_get_ptr(socket); 
-
-  psock->socket = nn_socket(AF_SP, NN_PULL);
-  if (psock->socket < 0) {
-    RAISE_SOCK_ERROR;
-  }
-
-  return socket; 
-}
-
-static VALUE 
-bus_sock_init(int argc, VALUE *argv, VALUE self)
-{
-  VALUE domain; 
-
-  rb_scan_args(argc, argv, "01", &domain);
-
-  if (NIL_P(domain)) 
-    sock_init(self, AF_SP, NN_BUS); 
-  else
-    sock_init(self, FIX2INT(domain), NN_BUS);
-
-  return self; 
 }
 
 static VALUE
@@ -551,22 +446,22 @@ Init_nanomsg(void)
   rb_define_method(cSocket, "recv", sock_recv, 0);
   rb_define_method(cSocket, "close", sock_close, 0);
 
-  rb_define_method(cPairSocket, "initialize", pair_sock_init, 0);
+  rb_define_method(cPairSocket, "initialize", pair_sock_init, -1);
 
-  rb_define_method(cReqSocket, "initialize", req_sock_init, 0);
-  rb_define_method(cRepSocket, "initialize", rep_sock_init, 0);
+  rb_define_method(cReqSocket, "initialize", req_sock_init, -1);
+  rb_define_method(cRepSocket, "initialize", rep_sock_init, -1);
 
-  rb_define_method(cPubSocket, "initialize", pub_sock_init, 0);
-  rb_define_method(cSubSocket, "initialize", sub_sock_init, 0);
+  rb_define_method(cPubSocket, "initialize", pub_sock_init, -1);
+  rb_define_method(cSubSocket, "initialize", sub_sock_init, -1);
   rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
 
-  rb_define_method(cSurveySocket, "initialize", srvy_sock_init, 0);
+  rb_define_method(cSurveySocket, "initialize", srvy_sock_init, -1);
   rb_define_method(cSurveySocket, "deadline=", srvy_set_deadline, 1);
   rb_define_method(cSurveySocket, "deadline", srvy_get_deadline, 0);
-  rb_define_method(cRespondSocket, "initialize", resp_sock_init, 0);
+  rb_define_method(cRespondSocket, "initialize", resp_sock_init, -1);
 
-  rb_define_method(cPushSocket, "initialize", push_sock_init, 0);
-  rb_define_method(cPullSocket, "initialize", pull_sock_init, 0);
+  rb_define_method(cPushSocket, "initialize", push_sock_init, -1);
+  rb_define_method(cPullSocket, "initialize", pull_sock_init, -1);
 
   rb_define_method(cBusSocket, "initialize", bus_sock_init, -1);
 
