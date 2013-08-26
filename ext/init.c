@@ -5,6 +5,7 @@
 #include <nanomsg/reqrep.h>
 #include <nanomsg/pair.h>
 #include <nanomsg/pubsub.h>
+#include <nanomsg/survey.h>
 
 #include "constants.h"
 
@@ -18,6 +19,9 @@ static VALUE cRepSocket;
 
 static VALUE cPubSocket;
 static VALUE cSubSocket;
+
+static VALUE cSurveySocket;
+static VALUE cRespondSocket;
 
 static VALUE ceSocketError;
 
@@ -345,6 +349,64 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
   return socket;
 }
 
+static VALUE 
+srvy_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_SURVEYOR);
+  if (psock->socket < 0) {
+    RAISE_SOCK_ERROR;
+  }
+
+  return socket; 
+}
+
+static VALUE
+srvy_set_deadline(VALUE self, VALUE deadline)
+{
+  int sock = sock_get(self);
+  VALUE miliseconds = rb_funcall(deadline, rb_intern("*"), 1, INT2NUM(1000));
+  int timeout = FIX2INT(miliseconds);
+  int err; 
+
+  printf("set deadline %d\n", timeout);
+  err = nn_setsockopt(sock, NN_SURVEYOR, NN_SURVEYOR_DEADLINE, &timeout, sizeof(int));
+  if (err < 0)
+    RAISE_SOCK_ERROR;
+
+  return deadline; 
+}
+
+static VALUE
+srvy_get_deadline(VALUE self)
+{
+  int sock = sock_get(self);
+  int deadline; 
+  size_t size = sizeof(int);
+
+  int err; 
+
+  err = nn_getsockopt(sock, NN_SURVEYOR, NN_SURVEYOR_DEADLINE, &deadline, &size);
+  if (err < 0)
+    RAISE_SOCK_ERROR; 
+
+  return rb_funcall(INT2NUM(deadline), rb_intern("/"), 1, rb_float_new(1000));  
+}
+
+static VALUE 
+resp_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_RESPONDENT);
+  if (psock->socket < 0) {
+    RAISE_SOCK_ERROR;
+  }
+
+  return socket; 
+}
+
 static VALUE
 nanomsg_terminate(VALUE self)
 {
@@ -366,6 +428,9 @@ Init_nanomsg(void)
   cPubSocket = rb_define_class_under(mNanoMsg, "PubSocket", cSocket);
   cSubSocket = rb_define_class_under(mNanoMsg, "SubSocket", cSocket);
 
+  cSurveySocket = rb_define_class_under(mNanoMsg, "SurveySocket", cSocket);
+  cRespondSocket = rb_define_class_under(mNanoMsg, "RespondSocket", cSocket);
+
   ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
 
   rb_define_singleton_method(mNanoMsg, "terminate", nanomsg_terminate, 0);
@@ -385,6 +450,11 @@ Init_nanomsg(void)
   rb_define_method(cPubSocket, "initialize", pub_sock_init, 0);
   rb_define_method(cSubSocket, "initialize", sub_sock_init, 0);
   rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
+
+  rb_define_method(cSurveySocket, "initialize", srvy_sock_init, 0);
+  rb_define_method(cSurveySocket, "deadline=", srvy_set_deadline, 1);
+  rb_define_method(cSurveySocket, "deadline", srvy_get_deadline, 0);
+  rb_define_method(cRespondSocket, "initialize", resp_sock_init, 0);
 
   Init_constants(mNanoMsg);
 }
