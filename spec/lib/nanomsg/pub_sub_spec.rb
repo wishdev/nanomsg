@@ -38,6 +38,7 @@ describe 'PUB/SUB sockets' do
         sub2.subscribe 'foo'
 
         sub1.subscribe 'bar'
+        sleep 0.1
 
         pub.send 'foo1234'
         sub1.recv.should == 'foo1234'
