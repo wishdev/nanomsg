@@ -6,6 +6,7 @@
 #include <nanomsg/pair.h>
 #include <nanomsg/pubsub.h>
 #include <nanomsg/survey.h>
+#include <nanomsg/pipeline.h>
 
 #include "constants.h"
 
@@ -22,6 +23,9 @@ static VALUE cSubSocket;
 
 static VALUE cSurveySocket;
 static VALUE cRespondSocket;
+
+static VALUE cPushSocket;
+static VALUE cPullSocket;
 
 static VALUE ceSocketError;
 
@@ -370,7 +374,6 @@ srvy_set_deadline(VALUE self, VALUE deadline)
   int timeout = FIX2INT(miliseconds);
   int err; 
 
-  printf("set deadline %d\n", timeout);
   err = nn_setsockopt(sock, NN_SURVEYOR, NN_SURVEYOR_DEADLINE, &timeout, sizeof(int));
   if (err < 0)
     RAISE_SOCK_ERROR;
@@ -407,6 +410,32 @@ resp_sock_init(VALUE socket)
   return socket; 
 }
 
+static VALUE 
+push_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_PUSH);
+  if (psock->socket < 0) {
+    RAISE_SOCK_ERROR;
+  }
+
+  return socket; 
+}
+
+static VALUE 
+pull_sock_init(VALUE socket)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(AF_SP, NN_PULL);
+  if (psock->socket < 0) {
+    RAISE_SOCK_ERROR;
+  }
+
+  return socket; 
+}
+
 static VALUE
 nanomsg_terminate(VALUE self)
 {
@@ -430,6 +459,9 @@ Init_nanomsg(void)
 
   cSurveySocket = rb_define_class_under(mNanoMsg, "SurveySocket", cSocket);
   cRespondSocket = rb_define_class_under(mNanoMsg, "RespondSocket", cSocket);
+
+  cPushSocket = rb_define_class_under(mNanoMsg, "PushSocket", cSocket);
+  cPullSocket = rb_define_class_under(mNanoMsg, "PullSocket", cSocket);
 
   ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
 
@@ -455,6 +487,9 @@ Init_nanomsg(void)
   rb_define_method(cSurveySocket, "deadline=", srvy_set_deadline, 1);
   rb_define_method(cSurveySocket, "deadline", srvy_get_deadline, 0);
   rb_define_method(cRespondSocket, "initialize", resp_sock_init, 0);
+
+  rb_define_method(cPushSocket, "initialize", push_sock_init, 0);
+  rb_define_method(cPullSocket, "initialize", pull_sock_init, 0);
 
   Init_constants(mNanoMsg);
 }
