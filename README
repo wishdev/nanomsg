@@ -1,7 +1,7 @@
 
 TLDR
 
-An idiomatic nanomsg wrapper for Ruby. (http://nanomsg.org/) 
+An idiomatic nanomsg wrapper for Ruby. 
 
 NANOMSG
 
@@ -24,6 +24,11 @@ stack. At the moment, nanomsg library supports following transports:
  * INPROC - transport within a process (between threads, modules etc.)
  * IPC - transport between processes on a single machine
  * TCP - network transport via TCP
+
+DOCUMENTATION
+
+Check out the examples folder of the project. See http://nanomsg.org/ for more 
+documentation. 
 
 SYNOPSIS
 
