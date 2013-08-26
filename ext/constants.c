@@ -80,6 +80,9 @@ Init_constants(VALUE module)
     if (strncmp(name, "NN_", 3) == 0) 
       rb_const_set(module, rb_intern(name), INT2NUM(value));
 
+    if (strncmp(name, "AF_", 3) == 0) 
+      rb_const_set(module, rb_intern(name), INT2NUM(value));
+
     if (strncmp(name, "E", 1) == 0) 
       err_add(mErrno, value, name);
   }

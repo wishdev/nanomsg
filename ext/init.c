@@ -7,6 +7,7 @@
 #include <nanomsg/pubsub.h>
 #include <nanomsg/survey.h>
 #include <nanomsg/pipeline.h>
+#include <nanomsg/bus.h>
 
 #include "constants.h"
 
@@ -26,6 +27,8 @@ static VALUE cRespondSocket;
 
 static VALUE cPushSocket;
 static VALUE cPullSocket;
+
+static VALUE cBusSocket;
 
 static VALUE ceSocketError;
 
@@ -124,6 +127,16 @@ sock_connect(VALUE socket, VALUE connect)
 
   // TODO do something with the endpoint, returning it in a class for example. 
   return Qnil; 
+}
+
+static void
+sock_init(VALUE socket, int domain, int protocol)
+{
+  struct nmsg_socket *psock = sock_get_ptr(socket); 
+
+  psock->socket = nn_socket(domain, protocol);
+  if (psock->socket < 0)
+    RAISE_SOCK_ERROR;
 }
 
 struct ioop {
@@ -436,6 +449,21 @@ pull_sock_init(VALUE socket)
   return socket; 
 }
 
+static VALUE 
+bus_sock_init(int argc, VALUE *argv, VALUE self)
+{
+  VALUE domain; 
+
+  rb_scan_args(argc, argv, "01", &domain);
+
+  if (NIL_P(domain)) 
+    sock_init(self, AF_SP, NN_BUS); 
+  else
+    sock_init(self, FIX2INT(domain), NN_BUS);
+
+  return self; 
+}
+
 static VALUE
 nanomsg_terminate(VALUE self)
 {
@@ -462,6 +490,8 @@ Init_nanomsg(void)
 
   cPushSocket = rb_define_class_under(mNanoMsg, "PushSocket", cSocket);
   cPullSocket = rb_define_class_under(mNanoMsg, "PullSocket", cSocket);
+
+  cBusSocket = rb_define_class_under(mNanoMsg, "BusSocket", cSocket);
 
   ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
 
@@ -490,6 +520,8 @@ Init_nanomsg(void)
 
   rb_define_method(cPushSocket, "initialize", push_sock_init, 0);
   rb_define_method(cPullSocket, "initialize", pull_sock_init, 0);
+
+  rb_define_method(cBusSocket, "initialize", bus_sock_init, -1);
 
   Init_constants(mNanoMsg);
 }
