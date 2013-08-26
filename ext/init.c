@@ -472,6 +472,51 @@ nanomsg_terminate(VALUE self)
   return Qnil; 
 }
 
+struct device_op {
+  int sa, sb; 
+  int err; 
+};
+
+static VALUE
+nanomsg_run_device_no_gvl(void* data)
+{
+  struct device_op *pop = (struct device_op*) data;
+
+  pop->err = nn_device(pop->sa, pop->sb);
+
+  return Qnil; 
+}
+
+static VALUE
+nanomsg_run_device(VALUE self, VALUE a, VALUE b)
+{
+  struct device_op dop; 
+
+  dop.sa = sock_get(a);
+  dop.sb = sock_get(b);
+
+  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, NULL, NULL);
+  if (dop.err < 0)
+    RAISE_SOCK_ERROR;
+
+  return Qnil; 
+}
+
+static VALUE
+nanomsg_run_loopback(VALUE self, VALUE a)
+{
+  struct device_op dop; 
+
+  dop.sa = sock_get(a);
+  dop.sb = -1;          // invalid socket, see documentation
+
+  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, NULL, NULL);
+  if (dop.err < 0)
+    RAISE_SOCK_ERROR;
+
+  return Qnil; 
+}
+
 void
 Init_nanomsg(void)
 {
@@ -496,6 +541,8 @@ Init_nanomsg(void)
   ceSocketError = rb_define_class_under(mNanoMsg, "SocketError", rb_eIOError);
 
   rb_define_singleton_method(mNanoMsg, "terminate", nanomsg_terminate, 0);
+  rb_define_singleton_method(mNanoMsg, "run_device", nanomsg_run_device, 2);
+  rb_define_singleton_method(mNanoMsg, "run_loopback", nanomsg_run_loopback, 1);
 
   rb_define_alloc_func(cSocket, sock_alloc);
   rb_define_method(cSocket, "bind", sock_bind, 1);

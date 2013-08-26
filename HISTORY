@@ -6,6 +6,8 @@
   * Adds SURVEYOR/RESPONDENT socket types. (SurveySocket, RespondSocket)
   * Adds PUSH/PULL socket types. (PushSocket, PullSocket)
   * Adds BUS socket type. (BusSocket)
+  * There's an experimental API for devices (.run_loopback, .run_device). 
+    Devices block a Ruby thread until .terminate is called.
   * Exceptions raised are now subclasses of NanoMsg::Errno
   * Added NanoMsg.terminate, calls nn_term. 
 

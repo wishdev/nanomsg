@@ -1,10 +1,18 @@
 require 'spec_helper'
 
+require 'timeout'
+
 describe 'Devices' do
   describe "connecting two BUSes" do
-    let(:a) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW).bind('inproc://a') }
-    let(:b) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW).bind('inproc://b') }
-    let(:c) { NanoMsg::BusSocket.new.connect('inproc://b') }
+    let(:a) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW) }
+    let(:b) { NanoMsg::BusSocket.new(NanoMsg::AF_SP_RAW) }
+    let(:c) { NanoMsg::BusSocket.new }
+
+    before(:each) do
+      a
+      b.bind('inproc://b')
+      c.connect('inproc://b')
+    end
 
     after(:each) do
       [a, b, c].each(&:close)
@@ -15,11 +23,9 @@ describe 'Devices' do
         NanoMsg.run_device(a, b)
       end.abort_on_exception = true
     }
-    after(:each) do
-      thread.kill
-    end
-
+    
     it "forwards messages" do
+      sleep 0.01
       c.send 'test'
       timeout(1) do
         a.recv.should == 'test'
