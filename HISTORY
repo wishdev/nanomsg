@@ -5,6 +5,7 @@
   * Adds PUB/SUB socket type. 
   * Adds SURVEYOR/RESPONDENT socket types. (SurveySocket, RespondSocket)
   * Adds PUSH/PULL socket types. (PushSocket, PullSocket)
+  * Adds BUS socket type. (BusSocket)
   * Exceptions raised are now subclasses of NanoMsg::Errno
   * Added NanoMsg.terminate, calls nn_term. 
 

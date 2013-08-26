@@ -6,6 +6,6 @@ describe NanoMsg do
     NanoMsg::NN_LINGER.should >= 0
   end  
   it 'allows shutting down using nn_term' do
-    NanoMsg.terminate
+    NanoMsg.should respond_to(:terminate)
   end
 end
