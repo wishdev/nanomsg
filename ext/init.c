@@ -159,37 +159,18 @@ struct ioop {
   int sock; 
   char* buffer; 
   long len; 
-  int abort; 
-  int fd; 
 };
 
 static VALUE
-sock_send_no_gvl(void* data)
+sock_send_blocking(void* data)
 {
   struct ioop *pio = data; 
 
-  // TODO This is buggy. I cannot make the difference between 
-  // 'socket gone away' (=EAGAIN) and 'socket busy' (=EAGAIN). So I err on the
-  // side of 'socket busy' and do not raise the error. As a consequence, we'll
-  // get stuck in an endless loop when the socket is just not answering. 
+  pio->return_code = nn_send(pio->sock, pio->buffer, pio->len, 0 /* flags */);
+  if (pio->return_code < 0)
+    pio->nn_errno = nn_errno(); 
 
-  while (pio->nn_errno == EAGAIN && !pio->abort) {
-    pio->return_code = nn_send(pio->sock, pio->buffer, pio->len, NN_DONTWAIT /* flags */);
-
-    if (pio->return_code < 0)
-      pio->nn_errno = nn_errno(); 
-    else
-      break;
-  }
-
-  return Qnil;
-}
-
-static void
-sock_send_abort(void* data)
-{
-  struct ioop *pio = data; 
-  pio->abort = Qtrue;  
+  return Qnil;   
 }
 
 static VALUE
@@ -198,17 +179,10 @@ sock_send(VALUE socket, VALUE buffer)
   struct ioop io; 
 
   io.sock = sock_get(socket);
-  io.nn_errno = EAGAIN;
   io.buffer = StringValuePtr(buffer);
   io.len = RSTRING_LEN(buffer);
-  io.abort = Qfalse; 
 
-  rb_thread_blocking_region(sock_send_no_gvl, &io, sock_send_abort, &io);
-
-  // Unclear what to do in this situation, but we'll simply return nil, 
-  // leaving Ruby to handle the abort. 
-  if (io.abort) 
-    return Qnil; 
+  rb_thread_blocking_region(sock_send_blocking, &io, RUBY_UBF_IO, 0);
 
   if (io.return_code < 0)
     sock_raise_error(io.nn_errno);
@@ -236,13 +210,6 @@ sock_recv(VALUE socket)
   struct ioop io; 
 
   io.sock = sock_get(socket);
-  io.buffer = (char*) 0; 
-  io.abort  = Qfalse; 
-  io.nn_errno = EAGAIN;
-
-  io.fd = nn_get_rcv_fd(io.sock);
-  if (io.fd < 0)
-    RAISE_SOCK_ERROR;
 
   rb_thread_blocking_region(sock_recv_blocking, &io, RUBY_UBF_IO, 0);
 
@@ -276,7 +243,7 @@ sock_close(VALUE socket)
 
   // I've no idea on how to abort a close (which may block for NN_LINGER 
   // seconds), so we'll be uninterruptible. 
-  rb_thread_blocking_region(sock_close_no_gvl, &io, NULL, NULL);
+  rb_thread_blocking_region(sock_close_no_gvl, &io, RUBY_UBF_IO, 0);
 
   if (io.return_code < 0)
     sock_raise_error(io.nn_errno);
@@ -427,7 +394,7 @@ nanomsg_run_device(VALUE self, VALUE a, VALUE b)
   dop.sa = sock_get(a);
   dop.sb = sock_get(b);
 
-  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, NULL, NULL);
+  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
   if (dop.err < 0)
     RAISE_SOCK_ERROR;
 
@@ -442,7 +409,7 @@ nanomsg_run_loopback(VALUE self, VALUE a)
   dop.sa = sock_get(a);
   dop.sb = -1;          // invalid socket, see documentation
 
-  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, NULL, NULL);
+  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
   if (dop.err < 0)
     RAISE_SOCK_ERROR;
 
