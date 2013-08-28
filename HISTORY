@@ -2,6 +2,7 @@
 
   * Fixes GVL related blocking behaviour, recv/send will now _NOT_ consume 
     a whole core. 
+  * Adds a raw setsockopt that allows settting various types of values. 
 
 = 0.2 / 26Aug2013
 
