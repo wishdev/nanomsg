@@ -1,3 +1,4 @@
+manifest.txt
 ext/Makefile
 mkmf.log
 ext/*.o

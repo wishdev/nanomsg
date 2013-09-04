@@ -2,12 +2,13 @@
 
 Gem::Specification.new do |s|
   s.name = 'nanomsg'
-  s.version = '0.3.0'
+  s.version = '0.3.1'
 
   s.authors = ['Kaspar Schiess']
   s.email = 'kaspar.schiess@absurd.li'
   s.extra_rdoc_files = ['README']
-  s.files = %w(HISTORY LICENSE README) + Dir.glob("{lib,ext,examples,spec}/**/*")
+  s.files = File.readlines('manifest.txt').map { |l| l.chomp } -
+    %w(.gitignore todo)
   s.homepage = 'https://bitbucket.org/kschiess/nanomsg'
   s.rdoc_options = ['--main', 'README']
   s.require_paths = ['lib', 'ext']
