@@ -1,6 +1,5 @@
 
-$:.unshift File.dirname(__FILE__) + "/../ext"
-require 'nanomsg.bundle'
+require File.expand_path(File.dirname(__FILE__) + "/../ext/nanomsg")
 
 module NanoMsg
   class Socket
