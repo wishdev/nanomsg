@@ -1,4 +1,4 @@
-= 0.3 / ???
+= 0.3 / 4Sept2013
 
   * Fixes GVL related blocking behaviour, recv/send will now _NOT_ consume 
     a whole core. 
