@@ -8,7 +8,7 @@ Gem::Specification.new do |s|
   s.email = 'kaspar.schiess@absurd.li'
   s.extra_rdoc_files = ['README']
   s.files = File.readlines('manifest.txt').map { |l| l.chomp } -
-    %w(.gitignore todo nanomsg.gemspec)
+    %w(.gitignore todo nanomsg.gemspec manifest.txt)
   s.homepage = 'https://bitbucket.org/kschiess/nanomsg'
   s.rdoc_options = ['--main', 'README']
   s.require_paths = ['lib', 'ext']
