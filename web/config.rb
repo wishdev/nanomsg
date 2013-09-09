@@ -68,8 +68,9 @@ configure :build do
   # activate :asset_hash
 
   # Use relative URLs
-  # activate :relative_assets
+  activate :relative_assets
 
   # Or use a different image path
-  # set :http_path, "/Content/images/"
+  # set :http_path, "/nanomsg/"
+  set :relative_links, true
 end
