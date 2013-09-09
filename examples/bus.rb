@@ -1,3 +1,6 @@
+
+# How to use the BUS socket. 
+
 $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'nanomsg'
 include NanoMsg

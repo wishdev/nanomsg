@@ -1,3 +1,7 @@
+
+# This example is about blocking sockets and thread abortion in Ruby. It
+# is not very instructive. More of a test. 
+
 $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'nanomsg'
 include NanoMsg

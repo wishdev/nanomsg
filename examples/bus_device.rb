@@ -1,3 +1,6 @@
+
+# How to connect two BUSes using a device. 
+
 $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'nanomsg'
 include NanoMsg

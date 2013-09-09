@@ -1,4 +1,6 @@
 
+# Demonstrates a PAIR socket via IPC transport. 
+
 $:.unshift File.dirname(__FILE__) + "/../lib"
 require 'nanomsg'
 
