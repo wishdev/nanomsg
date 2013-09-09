@@ -1,0 +1,32 @@
+---
+title: Welcome
+---
+
+.container.menu
+  .row
+    .col-md-2.menu-item= link_to 'ABOUT', 'index.html'
+  .row
+    .col-md-2.menu-item.active PAIR
+    .col-md-2.menu-item REQ/REP
+    .col-md-2.menu-item PUB/SUB
+    .col-md-2.menu-item SURVEY/RESPOND
+    .col-md-2.menu-item PUSH/PULL
+    .col-md-2.menu-item BUS
+  .row
+    .col-md-2.menu-item DOCUMENTATION
+    .col-md-2.menu-item CONTRIB
+
+  .row
+    .schema
+      = image_tag 'pair.png'
+
+    .caption
+      | Messages travel both ways. 
+        No order or protocol imposed.
+
+  .row.text
+    .col-md-6.sample
+      = partial 'texts/pair_a.markdown'
+    .col-md-6.sample
+      = partial 'texts/pair_b.markdown'
+
