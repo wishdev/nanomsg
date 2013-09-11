@@ -26,7 +26,8 @@ stack. At the moment, nanomsg library supports following transports:
 
 DOCUMENTATION
 
-Check out the examples folder of the project. See http://kschiess.bitbucket.org/nanomsg/ and http://nanomsg.org/ for more 
+Check out the examples folder of the project. See 
+http://kschiess.bitbucket.org/nanomsg/ and http://nanomsg.org/ for more 
 documentation. 
 
 SYNOPSIS
