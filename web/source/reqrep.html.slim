@@ -1,0 +1,22 @@
+---
+title: REQ/REP sockets
+---
+
+= partial(:menu)
+
+.container
+  .row
+    .schema
+      = image_tag 'reqrep.png'
+
+    .caption
+      | Messages travel from a REQ node (client) 
+        to a REP node (service)
+        and back again.
+
+  .row.text
+    .col-md-6.sample
+      = partial 'texts/req_node.markdown'
+    .col-md-6.sample
+      = partial 'texts/rep_node.markdown'
+

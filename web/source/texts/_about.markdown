@@ -1,7 +1,8 @@
 
 # NAME
 
-NanoMsg - Simple IPC using topologies, not transports.
+NanoMsg - Ruby bindings for the [nanomsg](http://nanomsg.org/) library for MRI
+Ruby. 
 
 # VERSION
 

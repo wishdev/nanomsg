@@ -2,20 +2,9 @@
 title: Welcome
 ---
 
-.container.menu
-  .row
-    .col-md-2.menu-item.active ABOUT
-  .row
-    .col-md-2.menu-item= link_to 'PAIR', 'pair.html'
-    .col-md-2.menu-item REQ/REP
-    .col-md-2.menu-item PUB/SUB
-    .col-md-2.menu-item SURVEY/RESPOND
-    .col-md-2.menu-item PUSH/PULL
-    .col-md-2.menu-item BUS
-  .row
-    .col-md-2.menu-item DOCUMENTATION
-    .col-md-2.menu-item CONTRIB
+= partial(:menu)
 
+.container
   .row.text
     .col-md-12
       = partial 'texts/about.markdown'
