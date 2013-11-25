@@ -77,20 +77,6 @@ sock_get(VALUE socket)
   return psock->socket;
 }
 
-static int
-nn_get_rcv_fd(int sock)
-{
-  int fd; 
-  size_t size = sizeof(fd);
-  int err; 
-
-  err = nn_getsockopt(sock, NN_SOL_SOCKET, NN_RCVFD, &fd, &size);
-  if (err < 0)
-    return err; 
-
-  return fd; 
-}
-
 static VALUE
 sock_alloc(VALUE klass) 
 {
