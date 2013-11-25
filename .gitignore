@@ -3,3 +3,5 @@ ext/Makefile
 mkmf.log
 ext/*.o
 ext/*.bundle
+
+web/vendor

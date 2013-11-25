@@ -333,6 +333,23 @@ sub_sock_subscribe(VALUE socket, VALUE channel)
 }
 
 static VALUE
+sub_sock_unsubscribe(VALUE socket, VALUE channel)
+{
+  int sock = sock_get(socket);
+  int err;
+
+  err = nn_setsockopt(
+    sock, NN_SUB, NN_SUB_UNSUBSCRIBE,
+    StringValuePtr(channel),
+    RSTRING_LEN(channel)
+  );
+  if (err < 0)
+    RAISE_SOCK_ERROR;
+
+  return socket;
+}
+
+static VALUE
 srvy_set_deadline(VALUE self, VALUE deadline)
 {
   int sock = sock_get(self);
@@ -459,6 +476,7 @@ Init_nanomsg(void)
   rb_define_method(cPubSocket, "initialize", pub_sock_init, -1);
   rb_define_method(cSubSocket, "initialize", sub_sock_init, -1);
   rb_define_method(cSubSocket, "subscribe", sub_sock_subscribe, 1);
+  rb_define_method(cSubSocket, "unsubscribe", sub_sock_unsubscribe, 1);
 
   rb_define_method(cSurveySocket, "initialize", srvy_sock_init, -1);
   rb_define_method(cSurveySocket, "deadline=", srvy_set_deadline, 1);
