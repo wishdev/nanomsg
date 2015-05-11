@@ -420,7 +420,7 @@ nanomsg_run_loopback(VALUE self, VALUE a)
 }
 
 void
-Init_nanomsg(void)
+Init_nanomsg_ext(void)
 {
   mNanoMsg = rb_define_module("NanoMsg"); 
   cSocket = rb_define_class_under(mNanoMsg, "Socket", rb_cObject);
