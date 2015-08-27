@@ -11,6 +11,21 @@
 
 #include "constants.h"
 
+/* 
+  This API was essentially renamed in Ruby 2.2. Let's provide a small layer 
+  that allows us to compile in both <2.2 and >=2.2 versions. 
+*/
+#if defined(HAVE_RB_THREAD_CALL_WITHOUT_GVL)
+/* Ruby 2.0+ */
+#  include <ruby/thread.h>
+#  define WITHOUT_GVL(fn,a,ubf,b) \
+  rb_thread_call_without_gvl((fn),(a),(ubf),(b))
+#elif defined(HAVE_RB_THREAD_BLOCKING_REGION)
+typedef VALUE (*blocking_fn_t)(void*);
+#  define WITHOUT_GVL(fn,a,ubf,b) \
+  rb_thread_blocking_region((blocking_fn_t)(fn),(a),(ubf),(b))
+#endif
+
 static VALUE mNanoMsg;
 static VALUE cSocket; 
 
@@ -147,7 +162,7 @@ struct ioop {
   long len; 
 };
 
-static VALUE
+static void*
 sock_send_blocking(void* data)
 {
   struct ioop *pio = data; 
@@ -156,7 +171,7 @@ sock_send_blocking(void* data)
   if (pio->return_code < 0)
     pio->nn_errno = nn_errno(); 
 
-  return Qnil;   
+  return (void*) 0;   
 }
 
 static VALUE
@@ -168,7 +183,7 @@ sock_send(VALUE socket, VALUE buffer)
   io.buffer = StringValuePtr(buffer);
   io.len = RSTRING_LEN(buffer);
 
-  rb_thread_blocking_region(sock_send_blocking, &io, RUBY_UBF_IO, 0);
+  WITHOUT_GVL(sock_send_blocking, &io, RUBY_UBF_IO, 0);
 
   if (io.return_code < 0)
     sock_raise_error(io.nn_errno);
@@ -176,7 +191,7 @@ sock_send(VALUE socket, VALUE buffer)
   return INT2NUM(io.return_code);
 }
 
-static VALUE
+static void*
 sock_recv_blocking(void* data)
 {
   struct ioop *pio = data; 
@@ -186,7 +201,7 @@ sock_recv_blocking(void* data)
   if (pio->return_code < 0)
     pio->nn_errno = nn_errno(); 
 
-  return Qnil; 
+  return (void*) 0; 
 }
 
 static VALUE
@@ -197,7 +212,7 @@ sock_recv(VALUE socket)
 
   io.sock = sock_get(socket);
 
-  rb_thread_blocking_region(sock_recv_blocking, &io, RUBY_UBF_IO, 0);
+  WITHOUT_GVL(sock_recv_blocking, &io, RUBY_UBF_IO, 0);
 
   if (io.return_code < 0)
     sock_raise_error(io.nn_errno);
@@ -208,7 +223,7 @@ sock_recv(VALUE socket)
   return result;
 }
 
-static VALUE
+static void*
 sock_close_no_gvl(void* data)
 {
   struct ioop *pio = (struct ioop*) data; 
@@ -217,7 +232,7 @@ sock_close_no_gvl(void* data)
   if (pio->return_code < 0)
     pio->nn_errno = nn_errno();
 
-  return Qnil;
+  return (void*) 0;
 }
 
 static VALUE
@@ -229,7 +244,7 @@ sock_close(VALUE socket)
 
   // I've no idea on how to abort a close (which may block for NN_LINGER 
   // seconds), so we'll be uninterruptible. 
-  rb_thread_blocking_region(sock_close_no_gvl, &io, RUBY_UBF_IO, 0);
+  WITHOUT_GVL(sock_close_no_gvl, &io, RUBY_UBF_IO, 0);
 
   if (io.return_code < 0)
     sock_raise_error(io.nn_errno);
@@ -379,14 +394,14 @@ struct device_op {
   int err; 
 };
 
-static VALUE
+static void*
 nanomsg_run_device_no_gvl(void* data)
 {
   struct device_op *pop = (struct device_op*) data;
 
   pop->err = nn_device(pop->sa, pop->sb);
 
-  return Qnil; 
+  return (void*) 0; 
 }
 
 static VALUE
@@ -397,7 +412,7 @@ nanomsg_run_device(VALUE self, VALUE a, VALUE b)
   dop.sa = sock_get(a);
   dop.sb = sock_get(b);
 
-  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
+  WITHOUT_GVL(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
   if (dop.err < 0)
     RAISE_SOCK_ERROR;
 
@@ -412,7 +427,7 @@ nanomsg_run_loopback(VALUE self, VALUE a)
   dop.sa = sock_get(a);
   dop.sb = -1;          // invalid socket, see documentation
 
-  rb_thread_blocking_region(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
+  WITHOUT_GVL(nanomsg_run_device_no_gvl, &dop, RUBY_UBF_IO, 0);
   if (dop.err < 0)
     RAISE_SOCK_ERROR;
 
