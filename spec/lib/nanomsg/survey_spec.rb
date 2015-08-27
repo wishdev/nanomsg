@@ -14,9 +14,9 @@ describe 'SURVEY sockets' do
     
     describe "transport #{name}" do
       it 'allows simple surveys' do
-        surveyor.deadline.should == 1 # default: 1 second
+        surveyor.deadline.assert == 1 # default: 1 second
         surveyor.deadline = 0.1 # 100ms
-        surveyor.deadline.should == 0.1
+        surveyor.deadline.assert == 0.1
 
         surveyor.bind(tbind)
 
@@ -25,11 +25,11 @@ describe 'SURVEY sockets' do
 
         sleep 0.1
         surveyor.send 'u there?'
-        resp1.recv.should == 'u there?'
-        resp2.recv.should == 'u there?'
+        resp1.recv.assert == 'u there?'
+        resp2.recv.assert == 'u there?'
 
         resp1.send 'KTHNXBYE'
-        surveyor.recv.should == 'KTHNXBYE'
+        surveyor.recv.assert == 'KTHNXBYE'
 
         # nanomsg/tests/survey.c says this should be EFSM, the documentation 
         # says it should be ETIMEDOUT. Reality wins. 

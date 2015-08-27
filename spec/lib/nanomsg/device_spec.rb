@@ -34,7 +34,7 @@ describe 'Devices' do
       sleep 0.01
       c.send 'test'
       timeout(1) do
-        d.recv.should == 'test'
+        d.recv.assert == 'test'
       end
     end
   end

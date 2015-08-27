@@ -41,13 +41,13 @@ describe 'PUB/SUB sockets' do
         sleep 0.1
 
         pub.send 'foo1234'
-        sub1.recv.should == 'foo1234'
-        sub2.recv.should == 'foo1234'
+        sub1.recv.assert == 'foo1234'
+        sub2.recv.assert == 'foo1234'
 
         pub.send 'bar4567'
         pub.send 'foo9999'
-        sub1.recv.should == 'bar4567'
-        sub2.recv.should == 'foo9999'
+        sub1.recv.assert == 'bar4567'
+        sub2.recv.assert == 'foo9999'
       end      
     end
   end

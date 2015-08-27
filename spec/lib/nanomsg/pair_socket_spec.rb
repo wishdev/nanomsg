@@ -17,11 +17,11 @@ describe NanoMsg::PairSocket do
         sock1.bind(tbind)
         sock2.connect(tbind)
 
-        sock1.send('1234').should == 4
-        sock2.recv.should == '1234'
+        sock1.send('1234').assert == 4
+        sock2.recv.assert == '1234'
 
-        sock2.send('5678').should == 4
-        sock1.recv.should == '5678'    
+        sock2.send('5678').assert == 4
+        sock1.recv.assert == '5678'    
       end      
     end
   end

@@ -33,7 +33,7 @@ describe 'PUSH/PULL pipeline sockets' do
           end
 
           # This is about a 5% level of the binominal distribution
-          (n.first - n.last).abs.should < 10
+          (n.first - n.last).abs.assert < 10
         end
       end
       describe 'fanin' do
@@ -57,7 +57,7 @@ describe 'PUSH/PULL pipeline sockets' do
           end
 
           100.times do |i|
-            consumer.recv.to_i.should == i
+            consumer.recv.to_i.assert == i
           end
         end
       end

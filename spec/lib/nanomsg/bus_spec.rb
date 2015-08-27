@@ -19,10 +19,10 @@ describe 'BUS sockets' do
           sleep 0.01
 
           a.send 'test'
-          b.recv.should == 'test'
+          b.recv.assert == 'test'
 
           b.send 'ing'
-          a.recv.should == 'ing'
+          a.recv.assert == 'ing'
         end
       end
     end

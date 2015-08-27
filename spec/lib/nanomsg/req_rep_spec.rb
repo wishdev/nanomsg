@@ -19,10 +19,10 @@ describe 'REQ/REP sockets' do
 
         req.send 'req1'
 
-        rep.recv.should == 'req1'
+        rep.recv.assert == 'req1'
         rep.send 'rep1'
         
-        req.recv.should == 'rep1'
+        req.recv.assert == 'rep1'
       end      
     end
   end
