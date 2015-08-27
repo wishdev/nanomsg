@@ -2,7 +2,7 @@
 
 Gem::Specification.new do |s|
   s.name = 'nanomsg'
-  s.version = '0.4.0'
+  s.version = '0.5.0'
 
   s.authors = ['Kaspar Schiess']
   s.email = 'kaspar.schiess@absurd.li'
