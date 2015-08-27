@@ -3,5 +3,6 @@ ext/Makefile
 mkmf.log
 ext/*.o
 ext/*.bundle
-
+vendor/lib
 web/vendor
+Gemfile.lock
