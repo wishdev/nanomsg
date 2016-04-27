@@ -4,12 +4,32 @@ require 'timeout'
 
 describe 'PUB/SUB sockets' do
   describe 'PUB socket' do
-    it 'has no #recv method'
+    let!(:pub) { NanoMsg::PubSocket.new }
+    
+    it 'has no #recv method' do
+      NanoMsg::Errno::ENOTSUP.assert.raised? do
+        pub.recv
+      end
+    end
   end
   describe 'SUB socket' do
-    it 'has no #send method'
-    it 'allows subscribing to channels'
-    it 'allows unsubscribing to channels'
+    let!(:sub) { NanoMsg::SubSocket.new }
+    it 'has no #send method' do
+      NanoMsg::Errno::ENOTSUP.assert.raised? do
+        sub.send 'foo'
+      end
+    end
+    
+    it 'allows unsubscribing to channels' do
+      sub.subscribe 'foo'
+      sub.unsubscribe 'foo'
+    end
+    it 'allows unsubscribing to channels' do
+      # NOTE unsubscribe without previous subscribe currently provokes an 
+      #   access protection (null pointer deref) in nn_setsockopt/NN_SUB_UNSUBSCRIBE
+      #   We told you it was alpha software. 
+      # sub.unsubscribe 'foo'
+    end
   end
 
   def self.examples_for_transport tbind
