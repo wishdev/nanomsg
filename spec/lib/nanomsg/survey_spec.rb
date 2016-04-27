@@ -36,6 +36,9 @@ describe 'SURVEY sockets' do
         begin
           surveyor.recv
         rescue NanoMsg::Errno::EFSM
+          # Old nanomsg version
+        rescue NanoMsg::Errno::ETIMEDOUT
+          # New version
         end
       end      
     end
