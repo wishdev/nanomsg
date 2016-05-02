@@ -22,7 +22,25 @@ describe NanoMsg::PairSocket do
 
         sock2.send('5678').assert == 4
         sock1.recv.assert == '5678'    
-      end      
+      end
+      it 'allows file descriptor retrieval' do
+        sock1.bind(tbind)
+        sock2.connect(tbind)
+
+        sock1.send('1234').assert == 4
+
+        # Now our socket should be ready: 
+        int_fd = sock2.getsockopt(NanoMsg::NN_SOL_SOCKET, NanoMsg::NN_RCVFD)
+
+        # Reconstruct a Ruby IO from the integer above. Note that if you 
+        # #close this FD, things will be messed up for NanoMsg.
+        io = IO.for_fd(int_fd)
+        io.autoclose = false
+
+        r, _, _ = IO.select([io])
+        r.size.assert == 1
+        r.first.assert == io
+      end
     end
   end
 

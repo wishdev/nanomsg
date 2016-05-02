@@ -290,6 +290,42 @@ sock_setsockopt(VALUE self, VALUE level, VALUE option, VALUE val)
   return self; 
 }
 
+static VALUE 
+sock_getsockopt(VALUE self, VALUE level, VALUE option)
+{
+  int sock = sock_get(self);
+  int level_arg = FIX2INT(level); 
+  int option_arg = FIX2INT(option);
+  int err; 
+ 
+  int out; 
+  size_t sz; 
+
+  if (level_arg == NN_SOL_SOCKET) {
+    // This list of supported options is not complete yet. However, having
+    // a few supported sockets here is more useful than none at all. WIP. 
+    // Yes, pr please ;) 
+    switch (option_arg) {
+      case NN_SNDFD: 
+      case NN_RCVFD: 
+        // Return will be int, which is a system fd. 
+        sz = sizeof(out);
+        err = nn_getsockopt(sock, level_arg, option_arg, &out, &sz);
+        if (err < 0)
+          RAISE_SOCK_ERROR;
+
+        return INT2NUM(out);
+      default: 
+        // Unsupported option, returning nil. 
+        return Qnil;
+    }  
+  }
+  else {
+    // And yet more code here. 
+    return Qnil; 
+  }
+}
+
 #define SOCK_INIT_FUNC(name, type) \
 static VALUE \
 name(int argc, VALUE *argv, VALUE self) \
@@ -468,6 +504,7 @@ Init_nanomsg_ext(void)
   rb_define_method(cSocket, "recv", sock_recv, 0);
   rb_define_method(cSocket, "close", sock_close, 0);
   rb_define_method(cSocket, "setsockopt", sock_setsockopt, 3);
+  rb_define_method(cSocket, "getsockopt", sock_getsockopt, 2);
 
   rb_define_method(cPairSocket, "initialize", pair_sock_init, -1);
 
