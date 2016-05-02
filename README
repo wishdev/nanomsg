@@ -43,11 +43,11 @@ SYNOPSIS
 STATUS
 
 Works with a range of nanomsg versions, last one verified is 0.6. Should work
-for mri rubies 1.9, 2.0, 2.1, 2.2.
+for mri rubies 1.9, 2.0, 2.1, 2.2, 2.3.
 
 Beta software: If you know what you're doing, you can use this in production. 
 
 LICENSE
 
-See file LICENSE, Copyright (c) 2013-2015 Kaspar Schiess
+See file LICENSE, Copyright (c) 2013-2016 Kaspar Schiess
 
