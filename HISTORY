@@ -1,4 +1,6 @@
-= 0.6 / 2Mai2016
+= 0.6 / 13Mai2016
+
+  * Adds #getsockopt to sockets, allowing only NN_SNDFD and NN_RCVFD for now. 
 
 = 0.5 / 27Aug2015
 
